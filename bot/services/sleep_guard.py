@@ -1,4 +1,4 @@
-"""Periodically disconnect users who have been silent too long."""
+"""無音が続いたユーザーを定期的にボイスから切断する。"""
 
 from __future__ import annotations
 
@@ -14,21 +14,27 @@ log = logging.getLogger(__name__)
 
 
 class SleepGuardService:
+    """無音タイムアウト監視ループ。"""
+
     def __init__(self, bot: SleepKickerBot) -> None:
+        """Bot 参照を保持する。"""
         self._bot = bot
 
     def start(self) -> None:
+        """設定の間隔でチェックループを開始する。"""
         interval = self._bot.config.check_interval_seconds
         self._check.change_interval(seconds=interval)
         self._check.start()
-        log.info("SleepGuard started (interval=%ss)", interval)
+        log.info("SleepGuard を開始しました（間隔=%s秒）", interval)
 
     def stop(self) -> None:
+        """ループが動いていれば停止する。"""
         if self._check.is_running():
             self._check.cancel()
 
     @tasks.loop(seconds=30)
     async def _check(self) -> None:
+        """しきい値超過ユーザーを切断候補として処理する。"""
         threshold = self._bot.config.silence_threshold_seconds
         silent = self._bot.voice_activity.silent_users(threshold)
         if not silent:
@@ -39,11 +45,16 @@ class SleepGuardService:
 
     @_check.before_loop
     async def _before_check(self) -> None:
+        """Bot の ready まで待つ。"""
         await self._bot.wait_until_ready()
 
     async def _disconnect_if_still_there(
         self, user_id: int, guild_id: int, channel_id: int
     ) -> None:
+        """記録どおり同じ VC にいれば切断し、追跡を外す。
+
+        別チャンネルへ移動済みなら追跡だけ解除する（更新は voice_state 側）。
+        """
         guild = self._bot.get_guild(guild_id)
         if guild is None:
             self._bot.voice_activity.untrack(user_id)
@@ -59,21 +70,21 @@ class SleepGuardService:
             return
 
         if member.voice.channel.id != channel_id:
-            # Moved elsewhere; tracking will be updated by voice_state handler.
+            # 別チャンネルへ移動済み。追跡の更新は voice_state ハンドラ側。
             self._bot.voice_activity.untrack(user_id)
             return
 
         try:
-            await member.move_to(None, reason="silence timeout")
+            await member.move_to(None, reason="無音タイムアウト")
             log.info(
-                "Disconnected silent member %s (%s) from channel %s",
+                "無音のため切断しました: %s (%s) チャンネル=%s",
                 member,
                 user_id,
                 channel_id,
             )
         except Exception:
             log.exception(
-                "Failed to disconnect member %s (%s) from channel %s",
+                "メンバーの切断に失敗しました: %s (%s) チャンネル=%s",
                 member,
                 user_id,
                 channel_id,

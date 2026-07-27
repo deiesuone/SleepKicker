@@ -1,20 +1,15 @@
-"""Entry point: load dotenv-backed config and run the bot."""
+"""エントリポイント: dotenv 経由の設定を読み込み Bot を起動する。"""
 
 from __future__ import annotations
 
-import logging
-import sys
-
 from bot.client import create_bot
 from bot.config import load_config
+from bot.logging_setup import configure_logging
 
 
 def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        stream=sys.stdout,
-    )
+    """ログ設定・設定読込・Bot 起動を順に行う。"""
+    configure_logging()
 
     config = load_config()
     bot = create_bot(config)

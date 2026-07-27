@@ -1,1 +1,1 @@
-"""Receive package for voice audio sinks."""
+"""ボイス受信用シンクのパッケージ。"""

@@ -1,1 +1,1 @@
-"""SleepKicker bot package."""
+"""SleepKicker Bot パッケージ。"""
