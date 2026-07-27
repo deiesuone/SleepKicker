@@ -17,7 +17,7 @@ _FALSE_VALUES = frozenset({"false", "0", "no"})
 DetectMode = Literal["opus", "speaking"]
 
 # .env 未設定時および .env.example と揃える既定値
-DEFAULT_SILENCE_THRESHOLD_SECONDS = 600.0
+DEFAULT_SILENCE_THRESHOLD_SECONDS = 3600.0
 DEFAULT_CHECK_INTERVAL_SECONDS = 10.0
 DEFAULT_DETECT_MODE: DetectMode = "opus"
 DEFAULT_OPUS_VOLUME_THRESHOLD = 1000.0

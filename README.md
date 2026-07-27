@@ -100,7 +100,7 @@ cp .env.example .env
 | キー | 説明 | デフォルト |
 |------|------|------------|
 | `DISCORD_TOKEN` | Bot トークン（必須） | なし |
-| `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数（個人 `/timeout` 未設定時） | `600`（10分） |
+| `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数（個人 `/timeout` 未設定時） | `3600`（1時間） |
 | `CHECK_INTERVAL_SECONDS` | 退出チェック間隔（秒） | `10` |
 | `USE_MODE` | サーバー既定の検知モード（`opus` / `speaking`） | `opus` |
 | `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS（0=ゲートなし。個人 `/volume` 未設定時） | `1000` |
