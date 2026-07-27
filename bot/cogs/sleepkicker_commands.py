@@ -9,6 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.config import DEFAULT_OPUS_VOLUME_THRESHOLD
 from bot.texts import sleepkicker as T
 from bot.texts.i18n import LocaleLike
 
@@ -154,7 +155,9 @@ class SleepkickerCommands(commands.Cog):
         )
 
     @sleepkicker.command(name="volume", description=T.ls(T.VOLUME_DESCRIPTION))
-    @app_commands.describe(rms=T.ls(T.VOLUME_PARAM_RMS, default=0))
+    @app_commands.describe(
+        rms=T.ls(T.VOLUME_PARAM_RMS, default=DEFAULT_OPUS_VOLUME_THRESHOLD)
+    )
     async def volume(
         self,
         interaction: discord.Interaction,

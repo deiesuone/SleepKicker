@@ -1,5 +1,6 @@
 discord.py[voice]>=2.7.0
-# DAVE (E2EE) inbound decrypt — PR #58 until merged upstream
-discord-ext-voice-recv @ git+https://github.com/imayhaveborkedit/discord-ext-voice-recv.git@refs/pull/58/head
+# DAVE (E2EE) inbound decrypt — pin PR #58 head until merged upstream
+# https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/58
+discord-ext-voice-recv @ git+https://github.com/imayhaveborkedit/discord-ext-voice-recv.git@03dd1e2dafe85522cc458441cd5b143b136ac836
 davey>=0.1.0
 python-dotenv>=1.0.0

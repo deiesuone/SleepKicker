@@ -16,6 +16,13 @@ _FALSE_VALUES = frozenset({"false", "0", "no"})
 
 DetectMode = Literal["opus", "speaking"]
 
+# .env 未設定時および .env.example と揃える既定値
+DEFAULT_SILENCE_THRESHOLD_SECONDS = 600.0
+DEFAULT_CHECK_INTERVAL_SECONDS = 10.0
+DEFAULT_DETECT_MODE: DetectMode = "opus"
+DEFAULT_OPUS_VOLUME_THRESHOLD = 1000.0
+DEFAULT_DEBUG_LOG = False
+
 
 @dataclass(frozen=True, slots=True)
 class Config:
@@ -94,7 +101,9 @@ def load_config() -> Config:
             "DISCORD_TOKEN is not set. Copy .env.example to .env and set your bot token."
         )
 
-    opus_volume_threshold = float(os.getenv("OPUS_VOLUME_THRESHOLD", "0"))
+    opus_volume_threshold = float(
+        os.getenv("OPUS_VOLUME_THRESHOLD", str(DEFAULT_OPUS_VOLUME_THRESHOLD))
+    )
     if opus_volume_threshold < 0:
         raise RuntimeError(
             f"OPUS_VOLUME_THRESHOLD must be >= 0 (got {opus_volume_threshold!r})."
@@ -102,11 +111,25 @@ def load_config() -> Config:
 
     return Config(
         discord_token=token,
-        silence_threshold_seconds=float(os.getenv("SILENCE_THRESHOLD_SECONDS", "600")),
-        check_interval_seconds=float(os.getenv("CHECK_INTERVAL_SECONDS", "30")),
-        detect_mode=_parse_detect_mode(os.getenv("USE_MODE"), default="opus"),
+        silence_threshold_seconds=float(
+            os.getenv(
+                "SILENCE_THRESHOLD_SECONDS",
+                str(DEFAULT_SILENCE_THRESHOLD_SECONDS),
+            )
+        ),
+        check_interval_seconds=float(
+            os.getenv(
+                "CHECK_INTERVAL_SECONDS",
+                str(DEFAULT_CHECK_INTERVAL_SECONDS),
+            )
+        ),
+        detect_mode=_parse_detect_mode(
+            os.getenv("USE_MODE"), default=DEFAULT_DETECT_MODE
+        ),
         opus_volume_threshold=opus_volume_threshold,
-        debug_log=_parse_bool("DEBUG_LOG", os.getenv("DEBUG_LOG"), default=False),
+        debug_log=_parse_bool(
+            "DEBUG_LOG", os.getenv("DEBUG_LOG"), default=DEFAULT_DEBUG_LOG
+        ),
         priority_voice_channel_ids=_parse_snowflake_list(
             "PRIORITY_VOICE_CHANNEL_ID", os.getenv("PRIORITY_VOICE_CHANNEL_ID")
         ),

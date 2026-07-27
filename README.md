@@ -22,7 +22,7 @@ Discord Bot
 
 ユーザーは `/sleepkicker` で無音退出の有効／無効・無音分数・検知モード・Opus 音量しきい値を自分用に設定できます（ギルド別・`data/user_preferences.json`）。未設定時はサーバー既定（`SILENCE_THRESHOLD_SECONDS` / `USE_MODE` / `OPUS_VOLUME_THRESHOLD`）が使われます。各サブコマンドは自分の項目だけを変更します（例: `timeout` は分数のみで、enable は変えません）。
 
-Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv`（現状は PR #58）が必要です。`speaking` はパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）です。`opus` はデコードした PCM の RMS で判定します（しきい値 0 なら音量ゲートなし）。監視対象は Bot が参加しているギルドの全 VC です。
+Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv` が必要です。現状は [PR #58](https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/58) の内容を **コミットハッシュ固定**（`requirements.txt`）で入れています。上流マージ後は通常リリースへ切り替え、それまではハッシュを動かさない方針です。`speaking` はパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）です。`opus` はデコードした PCM の RMS で判定します（しきい値 0 なら音量ゲートなし）。監視対象は Bot が参加しているギルドの全 VC です。
 
 | モード | 判定 |
 |--------|------|
@@ -101,9 +101,9 @@ cp .env.example .env
 |------|------|------------|
 | `DISCORD_TOKEN` | Bot トークン（必須） | なし |
 | `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数（個人 `/timeout` 未設定時） | `600`（10分） |
-| `CHECK_INTERVAL_SECONDS` | 退出チェック間隔（秒） | `30` |
+| `CHECK_INTERVAL_SECONDS` | 退出チェック間隔（秒） | `10` |
 | `USE_MODE` | サーバー既定の検知モード（`opus` / `speaking`） | `opus` |
-| `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS（0=ゲートなし。個人 `/volume` 未設定時） | `0` |
+| `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS（0=ゲートなし。個人 `/volume` 未設定時） | `1000` |
 | `DEBUG_LOG` | 追跡中ユーザーの退出まで残り秒を1秒ごとにログ | `false` |
 | `PRIORITY_VOICE_CHANNEL_ID` | 優先監視チャンネル ID（カンマ区切り・左が最優先。存在しない ID は無視） | なし |
 
