@@ -45,7 +45,7 @@ class SleepKickerBot(commands.Bot):
         await self.load_extension("bot.cogs.sleepkicker_commands")
         self.sleep_guard.start()
         self.debug_countdown.start()
-        log.info("SleepKicker のセットアップが完了しました")
+        log.info("SleepKicker setup complete")
 
     async def close(self) -> None:
         """バックグラウンドサービスを止めてから Bot を閉じる。"""

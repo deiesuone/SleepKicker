@@ -25,7 +25,7 @@ class SleepGuardService:
         interval = self._bot.config.check_interval_seconds
         self._check.change_interval(seconds=interval)
         self._check.start()
-        log.info("SleepGuard を開始しました（間隔=%s秒）", interval)
+        log.info("SleepGuard started (interval=%ss)", interval)
 
     def stop(self) -> None:
         """ループが動いていれば停止する。"""
@@ -92,16 +92,16 @@ class SleepGuardService:
             return
 
         try:
-            await member.move_to(None, reason="無音タイムアウト")
+            await member.move_to(None, reason="silence timeout")
             log.info(
-                "無音のため切断しました: %s (%s) チャンネル=%s",
+                "Disconnected for silence: %s (%s) channel=%s",
                 member,
                 user_id,
                 channel_id,
             )
         except Exception:
             log.exception(
-                "メンバーの切断に失敗しました: %s (%s) チャンネル=%s",
+                "Failed to disconnect member: %s (%s) channel=%s",
                 member,
                 user_id,
                 channel_id,

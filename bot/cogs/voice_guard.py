@@ -55,12 +55,12 @@ class VoiceGuard(commands.Cog):
         """ログイン後、各ギルドの既存 VC を走査して監視を開始する。"""
         priority_ids = self.bot.config.priority_voice_channel_ids
         log.info(
-            "%s としてログイン — 既存ボイスチャンネルを走査中 "
+            "Logged in as %s — scanning existing voice channels "
             "(mode=%s threshold=%s priority=%s)",
             self.bot.user,
             self.bot.config.detect_mode,
             self.bot.config.opus_volume_threshold,
-            ",".join(str(i) for i in priority_ids) if priority_ids else "なし",
+            ",".join(str(i) for i in priority_ids) if priority_ids else "none",
         )
         for guild in self.bot.guilds:
             await self._scan_guild(guild)
@@ -84,7 +84,7 @@ class VoiceGuard(commands.Cog):
         # 入室／移動: 監視可能なら接続する。
         if after.channel is not None and before.channel != after.channel:
             log.info(
-                "ボイス入室/移動: %s -> %s (%s)",
+                "Voice join/move: %s -> %s (%s)",
                 member,
                 after.channel.name,
                 after.channel.id,
@@ -219,7 +219,11 @@ class VoiceGuard(commands.Cog):
 
         humans = _human_user_ids(channel, bot_id)
         if not humans:
-            log.debug("人間ユーザーがいないため接続をスキップ: %s (%s)", channel.name, channel.id)
+            log.debug(
+                "Skipping connect; no human users: %s (%s)",
+                channel.name,
+                channel.id,
+            )
             return False
 
         vc = guild.voice_client
@@ -234,7 +238,7 @@ class VoiceGuard(commands.Cog):
         busy = self._occupied_elsewhere(guild, channel)
         if busy is not None and not self._can_preempt(channel, busy):
             log.info(
-                "既に %s (%s) を監視中のため %s (%s) へは移動しません",
+                "Already monitoring %s (%s); not moving to %s (%s)",
                 busy.name,
                 busy.id,
                 channel.name,
@@ -245,7 +249,7 @@ class VoiceGuard(commands.Cog):
         if vc is not None:
             if busy is not None and self._can_preempt(channel, busy):
                 log.info(
-                    "優先チャンネル %s (%s) に人がいるため %s (%s) から移動します",
+                    "Humans in priority channel %s (%s); leaving %s (%s)",
                     channel.name,
                     channel.id,
                     busy.name,
@@ -259,10 +263,10 @@ class VoiceGuard(commands.Cog):
             self.bot.voice_activity.track(user_id, guild.id, channel.id)
 
         try:
-            log.info("ボイスチャンネルへ接続中: %s (%s)…", channel.name, channel.id)
+            log.info("Connecting to voice channel: %s (%s)…", channel.name, channel.id)
             connected = await channel.connect(cls=voice_recv.VoiceRecvClient)
         except Exception:
-            log.exception("ボイスチャンネルへの接続に失敗しました: %s", channel.id)
+            log.exception("Failed to connect to voice channel: %s", channel.id)
             for user_id in humans:
                 self.bot.voice_activity.untrack(user_id)
             return False
@@ -272,7 +276,7 @@ class VoiceGuard(commands.Cog):
 
         self._start_receive(connected)
         log.info(
-            "参加完了: %s (%s) mode=%s opus_rms=%s",
+            "Joined: %s (%s) mode=%s opus_rms=%s",
             channel.name,
             channel.id,
             self.bot.config.detect_mode,
@@ -316,9 +320,9 @@ class VoiceGuard(commands.Cog):
         self.bot.voice_activity.clear_channel(guild.id, channel.id)
         try:
             await vc.disconnect()
-            log.info("空のボイスチャンネルから退出しました: %s (%s)", channel.name, channel.id)
+            log.info("Left empty voice channel: %s (%s)", channel.name, channel.id)
         except Exception:
-            log.exception("ボイスチャンネルからの切断に失敗しました: %s", channel.id)
+            log.exception("Failed to disconnect from voice channel: %s", channel.id)
             return
 
         await self._join_any_occupied(guild)

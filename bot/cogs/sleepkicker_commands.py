@@ -55,7 +55,7 @@ class SleepkickerCommands(commands.Cog):
     def _after_preference_change(self, user_id: int) -> None:
         """設定変更後、VC 追跡中なら無音タイマーをリセットする。"""
         if self.bot.voice_activity.reset_silence_timer(user_id):
-            log.info("設定変更のため無音タイマーをリセットしました: user=%s", user_id)
+            log.info("Reset silence timer after preference change: user=%s", user_id)
 
     def _status_text(
         self, guild_id: int, user_id: int, locale: LocaleLike = None
@@ -234,12 +234,12 @@ class SleepkickerCommands(commands.Cog):
         app_id = self.bot.application_id
         if app_id is not None:
             await self.bot.http.bulk_upsert_global_commands(app_id, [])
-            log.info("グローバルスラッシュコマンドをクリアしました")
+            log.info("Cleared global slash commands")
 
         for guild in self.bot.guilds:
             await self._sync_guild(guild)
         log.info(
-            "スラッシュコマンドをギルドへ同期しました（%s サーバー）",
+            "Synced slash commands to guilds (%s servers)",
             len(self.bot.guilds),
         )
 
@@ -247,7 +247,9 @@ class SleepkickerCommands(commands.Cog):
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """新規参加サーバーにもコマンドをすぐ出す。"""
         await self._sync_guild(guild)
-        log.info("新規ギルドへスラッシュコマンドを同期しました: %s (%s)", guild.name, guild.id)
+        log.info(
+            "Synced slash commands to new guild: %s (%s)", guild.name, guild.id
+        )
 
 
 async def setup(bot: SleepKickerBot) -> None:

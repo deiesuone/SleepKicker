@@ -193,9 +193,11 @@ class UserPreferencesStore:
             if not isinstance(loaded, dict):
                 raise ValueError("root must be an object")
             self._data = loaded
-            log.info("ユーザー設定を読み込みました: %s", self._path)
+            log.info("Loaded user preferences: %s", self._path)
         except Exception:
-            log.exception("ユーザー設定の読み込みに失敗したため空で開始します: %s", self._path)
+            log.exception(
+                "Failed to load user preferences; starting empty: %s", self._path
+            )
             self._data = {}
 
     def _save_unlocked(self) -> None:

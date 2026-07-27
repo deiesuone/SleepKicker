@@ -1,4 +1,4 @@
-"""任意: 追跡ユーザーごとの無音カウントダウンを 1Hz でコンソール出力する。"""
+"""Optional: print per-user silence countdown to the console at 1 Hz."""
 
 from __future__ import annotations
 
@@ -14,27 +14,27 @@ log = logging.getLogger(__name__)
 
 
 class DebugCountdownService:
-    """DEBUG_LOG 有効時に無音カウントダウンを表示する。"""
+    """Show silence countdown when DEBUG_LOG is enabled."""
 
     def __init__(self, bot: SleepKickerBot) -> None:
-        """Bot 参照を保持する。"""
+        """Keep a bot reference."""
         self._bot = bot
 
     def start(self) -> None:
-        """DEBUG_LOG が有効なら 1 秒ループを開始する。"""
+        """Start the 1s loop when DEBUG_LOG is enabled."""
         if not self._bot.config.debug_log:
             return
         self._tick.start()
-        log.info("DEBUG_LOG 有効 — 無音カウントダウンを1秒ごとに表示します")
+        log.info("DEBUG_LOG enabled — printing silence countdown every 1s")
 
     def stop(self) -> None:
-        """ループが動いていれば停止する。"""
+        """Stop the loop if running."""
         if self._tick.is_running():
             self._tick.cancel()
 
     @tasks.loop(seconds=1)
     async def _tick(self) -> None:
-        """スナップショットを取り、発話中／残り／超過／除外を1行で出す。"""
+        """Snapshot tracked users and log speaking / remaining / overdue."""
         default = self._bot.config.silence_threshold_seconds
         prefs = self._bot.user_preferences
 
@@ -67,25 +67,27 @@ class DebugCountdownService:
             if exempt:
                 speaking = ""
                 if source is not None:
-                    speaking = f" 発話中({source}){level}"
-                parts.append(f"{label}{speaking} 無効")
+                    speaking = f" speaking({source}){level}"
+                parts.append(f"{label}{speaking} off")
             elif source is not None:
                 parts.append(
-                    f"{label} 発話中({source}){level} 残り={remaining:.1f}秒"
+                    f"{label} speaking({source}){level} remaining={remaining:.1f}s"
                 )
             elif remaining <= 0:
-                parts.append(f"{label}{level} 超過={-remaining:.1f}秒（退出待ち）")
+                parts.append(
+                    f"{label}{level} overdue={-remaining:.1f}s (pending disconnect)"
+                )
             else:
-                parts.append(f"{label}{level} 残り={remaining:.1f}秒")
-        log.info("デバッグ カウントダウン: %s", " | ".join(parts))
+                parts.append(f"{label}{level} remaining={remaining:.1f}s")
+        log.info("debug countdown: %s", " | ".join(parts))
 
     @_tick.before_loop
     async def _before_tick(self) -> None:
-        """Bot の ready まで待つ。"""
+        """Wait until the bot is ready."""
         await self._bot.wait_until_ready()
 
     def _user_label(self, guild_id: int, user_id: int) -> str:
-        """ログ用の表示名（可能なら Member / User、だめなら ID）。"""
+        """Display name for logs (Member / User when possible, else ID)."""
         guild = self._bot.get_guild(guild_id)
         if guild is not None:
             member = guild.get_member(user_id)
@@ -94,4 +96,4 @@ class DebugCountdownService:
         user = self._bot.get_user(user_id)
         if user is not None:
             return f"{user} ({user_id})"
-        return f"ユーザー:{user_id}"
+        return f"user:{user_id}"
