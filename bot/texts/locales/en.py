@@ -6,28 +6,28 @@ STRINGS: dict[str, str] = {
     # --- group / subcommand descriptions ---
     "sleepkicker.group.description": "Your SleepKicker (silence disconnect) settings",
     "sleepkicker.enable.description": (
-        "Enable silence disconnect for you (true=on / false=off)"
+        "Enable silence disconnect (true=on / false=off)"
     ),
     "sleepkicker.enable.param.enabled": "true=on / false=off",
-    "sleepkicker.timeout.description": "Minutes of silence before you are disconnected",
+    "sleepkicker.timeout.description": "Minutes of silence before disconnect",
     "sleepkicker.timeout.param.minutes": (
         "Silence minutes (1–1440 = up to 24 hours)"
     ),
     "sleepkicker.mode.description": (
-        "How audio is detected (opus=volume / speaking=speaking)"
+        "How silence is detected (opus=volume / speaking=speech)"
     ),
-    "sleepkicker.mode.param.value": "opus=volume / speaking=speaking",
-    "sleepkicker.mode.choice.opus": "opus (volume)",
-    "sleepkicker.mode.choice.speaking": "speaking (speaking)",
+    "sleepkicker.mode.param.value": "opus=volume detection / speaking=speech detection",
+    "sleepkicker.mode.choice.opus": "opus (volume detection)",
+    "sleepkicker.mode.choice.speaking": "speaking (speech detection)",
     "sleepkicker.volume.description": (
-        "Volume threshold (RMS). Used when mode=opus"
+        "Volume detection threshold (RMS). Used when mode=opus"
     ),
     "sleepkicker.volume.param.rms": "0–32767 (default: {default:.0f})",
     "sleepkicker.status.description": "Show your SleepKicker settings",
-    "sleepkicker.reset.description": "Restore server defaults",
+    "sleepkicker.reset.description": "Reset settings to defaults",
     # --- labels ---
-    "sleepkicker.label.mode.opus": "volume",
-    "sleepkicker.label.mode.speaking": "speaking",
+    "sleepkicker.label.mode.opus": "volume detection",
+    "sleepkicker.label.mode.speaking": "speech detection",
     # --- status ---
     "sleepkicker.status.exit.exempt": "off",
     "sleepkicker.status.exit.minutes": "disconnect after {minutes} min silence",
@@ -35,7 +35,7 @@ STRINGS: dict[str, str] = {
     "sleepkicker.status.opus.gate_off": "no volume threshold",
     "sleepkicker.status.opus.gate_on": "volume threshold {rms:.0f}",
     "sleepkicker.status.opus.unused_speaking": (
-        "volume threshold unused in speaking mode"
+        "volume threshold unused in speech detection"
     ),
     "sleepkicker.status.line": "{exit} / {mode} / {opus}",
     # --- responses ---
@@ -53,7 +53,8 @@ STRINGS: dict[str, str] = {
     "sleepkicker.msg.volume_detail_off": "none",
     "sleepkicker.msg.volume_detail_on": "{rms}",
     "sleepkicker.msg.volume_speaking_note": (
-        "\n(Current mode is speaking. This applies when you switch to volume.)"
+        "\n(Current mode is speech detection. "
+        "This setting applies when you switch to volume detection.)"
     ),
-    "sleepkicker.msg.reset": "Personal settings cleared.\nCurrent: {status}",
+    "sleepkicker.msg.reset": "Personal settings reset.\nCurrent: {status}",
 }
