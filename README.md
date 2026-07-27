@@ -1,6 +1,6 @@
 # SleepKicker
 
-ボイスチャンネルで一定時間無音のメンバーを VC から切断する Discord Bot のスケルトンです。
+ボイスチャンネルで一定時間無音のメンバーを VC から退出させる Discord Bot です。
 
 ## アーキテクチャ
 
@@ -8,29 +8,56 @@
 Discord Bot
 │
 ├─ on_voice_state_update   … 人がいる VC へ参加 / 空なら退出（監視中は他 VC へ移らない）
-├─ VoiceRecvClient         … VC 接続（Speaking WS / Opus 受信）
-├─ 発話ソース（独立フラグ・OR）
-│   ├─ USE_SPEAKING … speaking start/stop（パケット合成・外周近似）
-│   └─ USE_OPUS     … ユーザー別音声（任意で PCM RMS しきい値）
+├─ VoiceRecvClient         … VC 接続（Speaking イベント / Opus 受信を常時）
+├─ ActivitySink            … ユーザー実効 mode で発話判定
+│   ├─ opus     … PCM RMS（音量）でタイマー更新
+│   └─ speaking … 発話インジケータ start/stop でラッチ
 ├─ VoiceActivityService    … 最終発話時刻・無音閾値判定
-└─ SleepGuardService       … move_to(None) で切断
+├─ UserPreferencesStore    … 本人設定（JSON）
+├─ /sleepkicker            … enable / timeout / mode / volume など
+└─ SleepGuardService       … move_to(None) で退出
 ```
 
-`USE_SPEAKING` と `USE_OPUS` は独立して ON/OFF でき、**どちらかが発話とみなせば**無音タイマーがリセットされます（OR）。
+サーバー既定の検知方式は `USE_MODE=opus|speaking`。ユーザーは `/sleepkicker mode` で上書きできます。同一 VC 内で opus / speaking が混在しても、受信は両方行い判定だけ個人別に分岐します。
 
-Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv`（現状は PR #58）が必要です。`USE_SPEAKING` はライブラリがパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）で発話中ラッチを張ります。`USE_OPUS` は受信音声で最終発話時刻を更新します。`OPUS_VOLUME_THRESHOLD` が 0 より大きいときは PCM にデコードし、RMS がしきい値以上のフレームだけを発話とみなします（0 なら従来どおりパケット有無のみ）。監視対象は Bot が参加しているギルドの全 VC です。
+ユーザーは `/sleepkicker` で無音退出の有効／無効・無音分数・検知モード・Opus 音量しきい値を自分用に設定できます（ギルド別・`data/user_preferences.json`）。未設定時はサーバー既定（`SILENCE_THRESHOLD_SECONDS` / `USE_MODE` / `OPUS_VOLUME_THRESHOLD`）が使われます。各サブコマンドは自分の項目だけを変更します（例: `timeout` は分数のみで、enable は変えません）。
 
-| フラグ | 判定 |
+Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv`（現状は PR #58）が必要です。`speaking` はパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）です。`opus` はデコードした PCM の RMS で判定します（しきい値 0 なら音量ゲートなし）。監視対象は Bot が参加しているギルドの全 VC です。
+
+| モード | 判定 |
 |--------|------|
-| `USE_SPEAKING` | パケット合成の speaking start/stop（外周の近似） |
-| `USE_OPUS` | Opus 受信（任意で PCM RMS しきい値） |
+| `opus` | Opus→PCM の音量（RMS） |
+| `speaking` | 発話インジケータ（外周の近似） |
 
 ## 必要要件
 
 - Python 3.11+
 - Discord Bot トークン
-- サーバーでの権限: **Connect**, **Move Members**（View Channel も必要に応じて）
-- Intent: `Guilds`, `Guild Voice States`（Privileged Intent は不要）
+- Intent（Developer Portal → Bot）: **Guilds**, **Guild Voice States**（Privileged Intent は不要）
+
+### Bot 権限・スコープ
+
+招待時（OAuth2 → URL Generator）で、ポータル上の日本語名だと次を選びます。
+
+**スコープ（Scopes）**
+
+| 名前 | 用途 |
+|------|------|
+| `bot` | サーバーへ Bot として参加 |
+| `applications.commands` | `/sleepkicker` などのスラッシュコマンド登録 |
+
+**Bot の権限（Bot Permissions）**
+
+| ポータル上の名前 | 用途 |
+|------------------|------|
+| **チャンネルを表示** | VC / テキストチャンネルの閲覧 |
+| **接続** | ボイスチャンネルへ参加 |
+| **発言** | VC 滞在に実質必要なことが多い（受信専用でも付与推奨） |
+| **メンバーを移動** | 無音ユーザーを VC から退出させる（サーバーからの追放ではない） |
+
+「メンバーをキック」は不要です（この Bot はサーバー追放ではなく、VC からの退出＝移動を使います）。  
+「スラッシュコマンドを使用」「メッセージを送信」も必須ではありません（コマンド応答は Interaction 経由です）。  
+監視したい VC では、Bot ロールがそのチャンネルを見られて接続できること（チャンネル権限で拒否されていないこと）も確認してください。
 
 ## セットアップ
 
@@ -73,15 +100,14 @@ cp .env.example .env
 | キー | 説明 | デフォルト |
 |------|------|------------|
 | `DISCORD_TOKEN` | Bot トークン（必須） | なし |
-| `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数 | `600`（10分） |
-| `CHECK_INTERVAL_SECONDS` | 閾値チェック間隔（秒） | `30` |
-| `USE_OPUS` | Opus 由来の音声で発話判定 | `true` |
-| `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS しきい値（0〜32767 程度。0=パケット有無のみ） | `0` |
-| `USE_SPEAKING` | speaking start/stop（外周近似）で発話判定 | `false` |
-| `DEBUG_LOG` | 追跡中ユーザーのキックまで残り秒を1秒ごとにログ | `false` |
+| `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数（個人 `/timeout` 未設定時） | `600`（10分） |
+| `CHECK_INTERVAL_SECONDS` | 退出チェック間隔（秒） | `30` |
+| `USE_MODE` | サーバー既定の検知モード（`opus` / `speaking`） | `opus` |
+| `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS（0=ゲートなし。個人 `/volume` 未設定時） | `0` |
+| `DEBUG_LOG` | 追跡中ユーザーの退出まで残り秒を1秒ごとにログ | `false` |
 | `PRIORITY_VOICE_CHANNEL_ID` | 優先監視チャンネル ID（カンマ区切り・左が最優先。存在しない ID は無視） | なし |
 
-ブール値は `true` / `false` / `1` / `0` / `yes` / `no` を受け付けます。`USE_OPUS` と `USE_SPEAKING` が両方 `false` は起動エラーです。フラグ変更後は Bot の再起動が必要です。
+ブール値は `true` / `false` / `1` / `0` / `yes` / `no` を受け付けます。設定変更後は Bot の再起動が必要です。
 
 `PRIORITY_VOICE_CHANNEL_ID` の例: `111,222,333`（左から順に優先）。リスト内で人がいる最左のチャンネルへ、他 VC 監視中でも移動します。人がいなければ通常どおり「監視中の人がいる VC からは動かない」です。
 
@@ -91,7 +117,8 @@ cp .env.example .env
 
 1. [Discord Developer Portal](https://discord.com/developers/applications) で Application / Bot を作成
 2. Bot トークンを `.env` の `DISCORD_TOKEN` に設定
-3. OAuth2 URL Generator で `bot` スコープを選び、権限に **Connect** と **Move Members** を付与して招待
+3. Bot ページで Intent **Guilds** / **Guild Voice States** を有効化
+4. OAuth2 → URL Generator でスコープ **`bot`** + **`applications.commands`** を選び、Bot の権限に **チャンネルを表示** / **接続** / **発言** / **メンバーを移動** を付けて招待（詳細は上記「Bot 権限・スコープ」）
 
 ### 5. 起動
 
@@ -101,12 +128,41 @@ cp .env.example .env
 python main.py
 ```
 
-起動時に `bot/config.py` が `python-dotenv` 経由でプロジェクトルートの `.env` を読み込みます。
+起動時に `bot/config.py` が `python-dotenv` 経由でプロジェクトルートの `.env` を読み込みます。初回起動後、テキストチャンネルで `/` と入力すると `/sleepkicker` が出ます（**ギルド単位**で同期するため、だいたい即時〜数十秒で反映されます）。
 
-## スケルトンの制限
+## ユーザー向けコマンド（`/sleepkicker`）
 
-- PCM / RMS による音量しきい値は未実装
-- 除外ロール・スラッシュコマンドによる設定変更なし
+本人のみ設定でき、応答は本人にだけ見えます（ephemeral）。設定はサーバー（ギルド）ごとに `data/user_preferences.json` へ保存されます。設定変更時は無音タイマーをリセットします。
+
+| コマンド | 内容 |
+|----------|------|
+| `/sleepkicker enable enabled:True` | 無音退出を有効にする |
+| `/sleepkicker enable enabled:False` | 無効（無音でも退出しない） |
+| `/sleepkicker timeout minutes:60` | 無音何分で退出するか（1〜1440 分）。enable は変更しない |
+| `/sleepkicker mode value:opus` | 音量判定（Opus / RMS） |
+| `/sleepkicker mode value:speaking` | 発話インジケータ判定 |
+| `/sleepkicker volume rms:500` | 自分の Opus RMS しきい値（0〜32767。0=ゲートなし）。mode=opus で有効 |
+| `/sleepkicker status` | 自分の現在設定を表示 |
+| `/sleepkicker reset` | 個人設定をすべて消し、サーバー既定に戻す |
+
+### 多言語（ユーザー向け文言）
+
+スラッシュ説明・選択肢名・コマンド応答は `bot/texts/` のキーベースカタログで管理しています。
+
+| パス | 役割 |
+|------|------|
+| `bot/texts/locales/ja.py` | 日本語 |
+| `bot/texts/locales/en.py` | 英語（未対応 locale のフォールバック） |
+| `bot/texts/i18n.py` | `t()` / `ls()` / Discord `Translator` |
+| `bot/texts/sleepkicker.py` | キー定数と文言の組み立て |
+
+- **用意言語**: 現状は日本語と英語のみ
+- **コマンド UI**（説明など）: Discord クライアントの言語向けに `CatalogTranslator` が同期時へ翻訳を載せます（未対応言語は英語）
+- **応答メッセージ**: 実行したユーザーの `interaction.locale`（未対応なら英語）
+- **言語追加**: `locales/<code>.py` に `STRINGS` をコピーして翻訳 → `i18n.BUILTIN_LOCALES`（と必要なら `_LOCALE_ALIASES`）へ追記
+
+## 制限・方針
+
 - 特定チャンネルのみ監視するホワイトリストなし
 - ギルドにつき Bot は同時に 1 VC のみ。**人がいる VC を監視中は他 VC へ移動しない**（入退室音を抑える）。例外として `PRIORITY_VOICE_CHANNEL_ID`（カンマ区切り・左が最優先）に人がいるときは、その中で最優先のチャンネルへ移動する。監視中の VC が空になったら退出し、別 VC に人がいればそちらへ入る（優先リストがあれば優先）
 - 起動時は優先リスト（人がいる最左）→ それ以外で最初に見つかった人がいる VC、の順

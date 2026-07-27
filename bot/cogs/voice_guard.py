@@ -56,11 +56,10 @@ class VoiceGuard(commands.Cog):
         priority_ids = self.bot.config.priority_voice_channel_ids
         log.info(
             "%s としてログイン — 既存ボイスチャンネルを走査中 "
-            "(opus=%s threshold=%s speaking=%s priority=%s)",
+            "(mode=%s threshold=%s priority=%s)",
             self.bot.user,
-            self.bot.config.use_opus,
+            self.bot.config.detect_mode,
             self.bot.config.opus_volume_threshold,
-            self.bot.config.use_speaking,
             ",".join(str(i) for i in priority_ids) if priority_ids else "なし",
         )
         for guild in self.bot.guilds:
@@ -168,18 +167,19 @@ class VoiceGuard(commands.Cog):
                     return
 
     def _start_receive(self, vc: voice_recv.VoiceRecvClient) -> None:
-        """ActivitySink で listen を開始する（未 listen かつ検知ソース有効時）。"""
-        # Speaking インジケータはシンク内でパケット活動から合成される。
-        if not (self.bot.config.use_opus or self.bot.config.use_speaking):
-            return
+        """ActivitySink で listen を開始する（未 listen 時）。"""
         if vc.is_listening():
+            return
+        guild = vc.guild
+        if guild is None:
             return
         vc.listen(
             ActivitySink(
                 self.bot.voice_activity,
-                track_opus=self.bot.config.use_opus,
-                track_speaking_indicator=self.bot.config.use_speaking,
-                opus_volume_threshold=self.bot.config.opus_volume_threshold,
+                preferences=self.bot.user_preferences,
+                guild_id=guild.id,
+                default_detect_mode=self.bot.config.detect_mode,
+                default_opus_volume_threshold=self.bot.config.opus_volume_threshold,
             )
         )
 
@@ -226,7 +226,7 @@ class VoiceGuard(commands.Cog):
 
         if vc is not None and vc.channel is not None and vc.channel.id == channel.id:
             for user_id in humans:
-                self.bot.voice_activity.track(user_id, guild.id, channel.id)
+                self.bot.voice_activity.ensure_tracked(user_id, guild.id, channel.id)
             if isinstance(vc, voice_recv.VoiceRecvClient):
                 self._start_receive(vc)
             return True
@@ -272,12 +272,11 @@ class VoiceGuard(commands.Cog):
 
         self._start_receive(connected)
         log.info(
-            "参加完了: %s (%s) opus=%s threshold=%s speaking=%s",
+            "参加完了: %s (%s) mode=%s opus_rms=%s",
             channel.name,
             channel.id,
-            self.bot.config.use_opus,
+            self.bot.config.detect_mode,
             self.bot.config.opus_volume_threshold,
-            self.bot.config.use_speaking,
         )
         return True
 

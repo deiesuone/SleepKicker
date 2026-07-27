@@ -34,24 +34,49 @@ class DebugCountdownService:
 
     @tasks.loop(seconds=1)
     async def _tick(self) -> None:
-        """スナップショットを取り、発話中／残り／超過を1行で出す。"""
-        threshold = self._bot.config.silence_threshold_seconds
-        rows = self._bot.voice_activity.countdown_snapshot(threshold)
+        """スナップショットを取り、発話中／残り／超過／除外を1行で出す。"""
+        default = self._bot.config.silence_threshold_seconds
+        prefs = self._bot.user_preferences
+
+        def resolve(user_id: int, guild_id: int) -> float | None:
+            return prefs.effective_threshold_seconds(
+                guild_id, user_id, default_seconds=default
+            )
+
+        rows = self._bot.voice_activity.countdown_snapshot(resolve)
         if not rows:
             return
 
         parts: list[str] = []
-        for user_id, guild_id, channel_id, remaining, source, opus_rms in sorted(
-            rows, key=lambda r: (r[4] is None, r[3])
-        ):
+        for (
+            user_id,
+            guild_id,
+            channel_id,
+            remaining,
+            source,
+            opus_rms,
+            gate_rms,
+            exempt,
+        ) in sorted(rows, key=lambda r: (not r[7], r[4] is None, r[3])):
             label = self._user_label(guild_id, user_id)
-            if source is not None:
-                rms_part = f" rms={opus_rms:.0f}" if opus_rms is not None else ""
-                parts.append(f"{label} 発話中({source}){rms_part} 残り={remaining:.1f}秒")
+            bits: list[str] = []
+            if gate_rms is not None:
+                bits.append(f"gate={gate_rms:.0f}")
+            bits.append(f"rms={(0.0 if opus_rms is None else opus_rms):.0f}")
+            level = " " + " ".join(bits)
+            if exempt:
+                speaking = ""
+                if source is not None:
+                    speaking = f" 発話中({source}){level}"
+                parts.append(f"{label}{speaking} 無効")
+            elif source is not None:
+                parts.append(
+                    f"{label} 発話中({source}){level} 残り={remaining:.1f}秒"
+                )
             elif remaining <= 0:
-                parts.append(f"{label} 超過={-remaining:.1f}秒（切断待ち）")
+                parts.append(f"{label}{level} 超過={-remaining:.1f}秒（退出待ち）")
             else:
-                parts.append(f"{label} 残り={remaining:.1f}秒")
+                parts.append(f"{label}{level} 残り={remaining:.1f}秒")
         log.info("デバッグ カウントダウン: %s", " | ".join(parts))
 
     @_tick.before_loop

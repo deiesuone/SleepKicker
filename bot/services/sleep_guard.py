@@ -35,8 +35,15 @@ class SleepGuardService:
     @tasks.loop(seconds=30)
     async def _check(self) -> None:
         """しきい値超過ユーザーを切断候補として処理する。"""
-        threshold = self._bot.config.silence_threshold_seconds
-        silent = self._bot.voice_activity.silent_users(threshold)
+        default = self._bot.config.silence_threshold_seconds
+        prefs = self._bot.user_preferences
+
+        def resolve(user_id: int, guild_id: int) -> float | None:
+            return prefs.effective_threshold_seconds(
+                guild_id, user_id, default_seconds=default
+            )
+
+        silent = self._bot.voice_activity.silent_users(resolve)
         if not silent:
             return
 
@@ -55,6 +62,16 @@ class SleepGuardService:
 
         別チャンネルへ移動済みなら追跡だけ解除する（更新は voice_state 側）。
         """
+        # 切断直前にもう一度除外を確認（設定変更のレース対策）。
+        default = self._bot.config.silence_threshold_seconds
+        if (
+            self._bot.user_preferences.effective_threshold_seconds(
+                guild_id, user_id, default_seconds=default
+            )
+            is None
+        ):
+            return
+
         guild = self._bot.get_guild(guild_id)
         if guild is None:
             self._bot.voice_activity.untrack(user_id)
