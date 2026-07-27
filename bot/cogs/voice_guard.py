@@ -56,9 +56,10 @@ class VoiceGuard(commands.Cog):
         priority_ids = self.bot.config.priority_voice_channel_ids
         log.info(
             "%s としてログイン — 既存ボイスチャンネルを走査中 "
-            "(opus=%s speaking=%s priority=%s)",
+            "(opus=%s threshold=%s speaking=%s priority=%s)",
             self.bot.user,
             self.bot.config.use_opus,
+            self.bot.config.opus_volume_threshold,
             self.bot.config.use_speaking,
             ",".join(str(i) for i in priority_ids) if priority_ids else "なし",
         )
@@ -178,6 +179,7 @@ class VoiceGuard(commands.Cog):
                 self.bot.voice_activity,
                 track_opus=self.bot.config.use_opus,
                 track_speaking_indicator=self.bot.config.use_speaking,
+                opus_volume_threshold=self.bot.config.opus_volume_threshold,
             )
         )
 
@@ -270,10 +272,11 @@ class VoiceGuard(commands.Cog):
 
         self._start_receive(connected)
         log.info(
-            "参加完了: %s (%s) opus=%s speaking=%s",
+            "参加完了: %s (%s) opus=%s threshold=%s speaking=%s",
             channel.name,
             channel.id,
             self.bot.config.use_opus,
+            self.bot.config.opus_volume_threshold,
             self.bot.config.use_speaking,
         )
         return True

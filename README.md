@@ -11,19 +11,19 @@ Discord Bot
 ├─ VoiceRecvClient         … VC 接続（Speaking WS / Opus 受信）
 ├─ 発話ソース（独立フラグ・OR）
 │   ├─ USE_SPEAKING … speaking start/stop（パケット合成・外周近似）
-│   └─ USE_OPUS     … ユーザー別 Opus パケット受信
+│   └─ USE_OPUS     … ユーザー別音声（任意で PCM RMS しきい値）
 ├─ VoiceActivityService    … 最終発話時刻・無音閾値判定
 └─ SleepGuardService       … move_to(None) で切断
 ```
 
 `USE_SPEAKING` と `USE_OPUS` は独立して ON/OFF でき、**どちらかが発話とみなせば**無音タイマーがリセットされます（OR）。
 
-Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv`（現状は PR #58）が必要です。`USE_SPEAKING` はライブラリがパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）で発話中ラッチを張ります。あわせて Opus パケット受信中も最終発話時刻を更新します。PCM の音量（RMS）解析は未実装です。監視対象は Bot が参加しているギルドの全 VC です。
+Discord のボイスは DAVE（E2EE）のため、受信には `davey` と DAVE 対応の `discord-ext-voice-recv`（現状は PR #58）が必要です。`USE_SPEAKING` はライブラリがパケット活動から合成する `voice_member_speaking_start` / `stop`（緑の丸の近似）で発話中ラッチを張ります。`USE_OPUS` は受信音声で最終発話時刻を更新します。`OPUS_VOLUME_THRESHOLD` が 0 より大きいときは PCM にデコードし、RMS がしきい値以上のフレームだけを発話とみなします（0 なら従来どおりパケット有無のみ）。監視対象は Bot が参加しているギルドの全 VC です。
 
 | フラグ | 判定 |
 |--------|------|
 | `USE_SPEAKING` | パケット合成の speaking start/stop（外周の近似） |
-| `USE_OPUS` | Opus パケット受信 |
+| `USE_OPUS` | Opus 受信（任意で PCM RMS しきい値） |
 
 ## 必要要件
 
@@ -75,7 +75,8 @@ cp .env.example .env
 | `DISCORD_TOKEN` | Bot トークン（必須） | なし |
 | `SILENCE_THRESHOLD_SECONDS` | 無音とみなす秒数 | `600`（10分） |
 | `CHECK_INTERVAL_SECONDS` | 閾値チェック間隔（秒） | `30` |
-| `USE_OPUS` | Opus パケットで発話判定 | `true` |
+| `USE_OPUS` | Opus 由来の音声で発話判定 | `true` |
+| `OPUS_VOLUME_THRESHOLD` | Opus 判定の PCM RMS しきい値（0〜32767 程度。0=パケット有無のみ） | `0` |
 | `USE_SPEAKING` | speaking start/stop（外周近似）で発話判定 | `false` |
 | `DEBUG_LOG` | 追跡中ユーザーのキックまで残り秒を1秒ごとにログ | `false` |
 | `PRIORITY_VOICE_CHANNEL_ID` | 優先監視チャンネル ID（カンマ区切り・左が最優先。存在しない ID は無視） | なし |

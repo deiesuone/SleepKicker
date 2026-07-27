@@ -41,12 +41,13 @@ class DebugCountdownService:
             return
 
         parts: list[str] = []
-        for user_id, guild_id, channel_id, remaining, source in sorted(
+        for user_id, guild_id, channel_id, remaining, source, opus_rms in sorted(
             rows, key=lambda r: (r[4] is None, r[3])
         ):
             label = self._user_label(guild_id, user_id)
             if source is not None:
-                parts.append(f"{label} 発話中({source}) 残り={remaining:.1f}秒")
+                rms_part = f" rms={opus_rms:.0f}" if opus_rms is not None else ""
+                parts.append(f"{label} 発話中({source}){rms_part} 残り={remaining:.1f}秒")
             elif remaining <= 0:
                 parts.append(f"{label} 超過={-remaining:.1f}秒（切断待ち）")
             else:

@@ -23,7 +23,8 @@ class Config:
         silence_threshold_seconds: 無音とみなす秒数（超過で切断）。
         check_interval_seconds: SleepGuard のポーリング間隔（秒）。
         use_speaking: Speaking start/stop で発話判定するか。
-        use_opus: Opus パケットで発話判定するか。
+        use_opus: Opus 由来の音声で発話判定するか。
+        opus_volume_threshold: Opus 判定の PCM RMS しきい値（0 ならパケット有無のみ）。
         debug_log: 1秒ごとのカウントダウンログを出すか。
         priority_voice_channel_ids: 優先 VC ID（左ほど優先度が高い）。
     """
@@ -33,6 +34,7 @@ class Config:
     check_interval_seconds: float
     use_speaking: bool
     use_opus: bool
+    opus_volume_threshold: float
     debug_log: bool
     # 左から右へ: 先頭ほど優先度が高い。
     priority_voice_channel_ids: tuple[int, ...]
@@ -119,12 +121,19 @@ def load_config() -> Config:
             "At least one of USE_SPEAKING or USE_OPUS must be true."
         )
 
+    opus_volume_threshold = float(os.getenv("OPUS_VOLUME_THRESHOLD", "0"))
+    if opus_volume_threshold < 0:
+        raise RuntimeError(
+            f"OPUS_VOLUME_THRESHOLD must be >= 0 (got {opus_volume_threshold!r})."
+        )
+
     return Config(
         discord_token=token,
         silence_threshold_seconds=float(os.getenv("SILENCE_THRESHOLD_SECONDS", "600")),
         check_interval_seconds=float(os.getenv("CHECK_INTERVAL_SECONDS", "30")),
         use_speaking=use_speaking,
         use_opus=use_opus,
+        opus_volume_threshold=opus_volume_threshold,
         debug_log=_parse_bool("DEBUG_LOG", os.getenv("DEBUG_LOG"), default=False),
         priority_voice_channel_ids=_parse_snowflake_list(
             "PRIORITY_VOICE_CHANNEL_ID", os.getenv("PRIORITY_VOICE_CHANNEL_ID")
