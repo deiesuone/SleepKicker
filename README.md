@@ -11,7 +11,6 @@ Discord のボイスチャンネルで、一定時間無音のメンバーを **
   - **opus** … 音量（PCM RMS）。サーバー既定
   - **speaking** … Discord の発話インジケータに近い判定
 - 個人設定コマンド `/sleepkicker`（有効／無効・分数・モード・音量しきい値）
-- ギルドあたり同時 1 VC。人がいる部屋を見ているあいだは、空になるまで基本的に移動しない（監視リストでより優先度の高い部屋に人が入ったときだけ移る）
 - `PRIORITY_VOICE_CHANNEL_ID` で監視 VC を限定可能（未設定または有効 ID なしなら全 VC）
 - コマンド UI / 応答は日本語・英語対応
 
@@ -60,7 +59,7 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-`.env` を編集します（**トークンを公開リポジトリにコミットしないでください**）。
+`.env` を編集して `DISCORD_TOKEN` を設定します。
 
 | キー | 説明 | デフォルト |
 |------|------|------------|
@@ -88,11 +87,11 @@ python main.py
 
 Windows では `.env` を置いたうえで `start_bot.bat` でも起動できます。
 
-初回起動後、テキストチャンネルで `/` と入力すると `/sleepkicker` が出ます（ギルド同期のため、反映まで数十秒かかることがあります）。
+初回起動後、テキストチャンネルで `/` と入力すると `/sleepkicker` が出ます（反映まで数十秒かかることがあります）。
 
 ## コマンド（`/sleepkicker`）
 
-本人のみ設定でき、応答は ephemeral（自分だけに表示）です。設定はギルド別に `data/user_preferences.json` へ保存されます。変更時は無音タイマーをリセットします。
+本人のみ設定でき、応答は自分だけに表示されます。設定はサーバー別に `data/user_preferences.json` へ保存され、変更時は無音タイマーをリセットします。
 
 | コマンド | 内容 |
 |----------|------|
@@ -103,44 +102,14 @@ Windows では `.env` を置いたうえで `start_bot.bat` でも起動でき�
 | `/sleepkicker status` | 自分の設定を表示 |
 | `/sleepkicker reset` | 個人設定を消し、サーバー既定に戻す |
 
-スラッシュコマンドは通常のチャット投稿にはなりません。
-
-## アーキテクチャ
-
-```
-Discord Bot
-│
-├─ on_voice_state_update   … 人がいる VC へ参加 / 空なら退出
-├─ VoiceRecvClient         … Speaking / Opus 受信
-├─ ActivitySink            … ユーザー実効 mode で発話判定
-│   ├─ opus     … PCM RMS
-│   └─ speaking … speaking start/stop
-├─ VoiceActivityService    … 最終発話・閾値判定
-├─ UserPreferencesStore    … 個人設定（JSON）
-├─ /sleepkicker            … 個人設定コマンド
-└─ SleepGuardService       … move_to(None) で退出
-```
-
-同一 VC 内で opus / speaking が混在しても、受信は両方行い判定だけ個人別に分岐します。
-
 ## プライバシー
 
-無音判定のため、Bot が参加中の VC の音声パケットを受信します。録音・公開・聞き返し用の保存は行いません（判定と個人設定 JSON のみ）。サーバーへの導入時は、メンバーへの説明を推奨します。
+無音判定のため、Bot が参加中の VC の音声パケットを受信します。録音・公開・聞き返し用の保存は行いません（判定と個人設定 JSON のみ）。
 
 ## 制限
 
-- ギルド（サーバー）につき Bot は同時に 1 VC のみ
+- サーバーにつき Bot は同時に 1 VC のみ
 - 監視中の VC に人がいるあいだは、ほかの部屋へは移らない。ただし `PRIORITY_VOICE_CHANNEL_ID` で並べた部屋のうち、今より左側（優先度が高い）の部屋に人が入ったときは、そちらへ移る
-
-## 多言語
-
-| パス | 役割 |
-|------|------|
-| `bot/texts/locales/ja.py` | 日本語 |
-| `bot/texts/locales/en.py` | 英語（フォールバック） |
-| `bot/texts/i18n.py` | `t()` / `ls()` / Discord `Translator` |
-
-コマンド UI はクライアント言語、応答は `interaction.locale` に応じます（未対応は英語）。
 
 ## ライセンス
 
