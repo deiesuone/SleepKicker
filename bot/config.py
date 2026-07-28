@@ -88,6 +88,21 @@ def _parse_positive_float(name: str, raw: str | None, *, default: float) -> floa
     return value
 
 
+def _parse_non_negative_float(
+    name: str, raw: str | None, *, default: float
+) -> float:
+    """0 以上の浮動小数を解釈する。"""
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        value = float(raw.strip())
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a number (got {raw!r}).") from exc
+    if value < 0:
+        raise RuntimeError(f"{name} must be >= 0 (got {value!r}).")
+    return value
+
+
 def _parse_snowflake_list(name: str, raw: str | None) -> tuple[int, ...]:
     """カンマ区切りの Discord スノーフレーク ID を解釈する。空なら ()。"""
     if raw is None or raw.strip() == "":
@@ -115,14 +130,6 @@ def load_config() -> Config:
             "DISCORD_TOKEN is not set. Copy .env.example to .env and set your bot token."
         )
 
-    opus_volume_threshold = float(
-        os.getenv("OPUS_VOLUME_THRESHOLD", str(DEFAULT_OPUS_VOLUME_THRESHOLD))
-    )
-    if opus_volume_threshold < 0:
-        raise RuntimeError(
-            f"OPUS_VOLUME_THRESHOLD must be >= 0 (got {opus_volume_threshold!r})."
-        )
-
     return Config(
         discord_token=token,
         silence_threshold_seconds=_parse_positive_float(
@@ -138,7 +145,11 @@ def load_config() -> Config:
         detect_mode=_parse_detect_mode(
             os.getenv("USE_MODE"), default=DEFAULT_DETECT_MODE
         ),
-        opus_volume_threshold=opus_volume_threshold,
+        opus_volume_threshold=_parse_non_negative_float(
+            "OPUS_VOLUME_THRESHOLD",
+            os.getenv("OPUS_VOLUME_THRESHOLD"),
+            default=DEFAULT_OPUS_VOLUME_THRESHOLD,
+        ),
         debug_log=_parse_bool(
             "DEBUG_LOG", os.getenv("DEBUG_LOG"), default=DEFAULT_DEBUG_LOG
         ),

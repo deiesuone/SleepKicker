@@ -200,12 +200,15 @@ class VoiceGuard(commands.Cog):
     async def _join_first_candidate(
         self, guild: discord.Guild, *, locked: bool
     ) -> bool:
-        """占有している監視対象へ順に接続を試み、成功したら True。"""
+        """占有している監視対象へ順に接続を試み、成功したら True。
+
+        候補走査では最左への書き換えをせず、失敗した部屋を飛ばして次を試す。
+        """
         for channel in self._candidate_channels(guild):
             ok = (
-                await self._ensure_listening_locked(channel)
+                await self._ensure_listening_locked(channel, prefer_best=False)
                 if locked
-                else await self._ensure_listening(channel)
+                else await self._ensure_listening(channel, prefer_best=False)
             )
             if ok:
                 return True
@@ -257,9 +260,16 @@ class VoiceGuard(commands.Cog):
         return None
 
     async def _ensure_listening(
-        self, channel: discord.VocalGuildChannel
+        self,
+        channel: discord.VocalGuildChannel,
+        *,
+        prefer_best: bool = True,
     ) -> bool:
         """許可されれば ``channel`` に接続する。監視中なら True。
+
+        Args:
+            prefer_best: True なら実効リスト上の最左占有 VC を優先する。
+                候補走査時は False にして次候補へのフォールバックを許す。
 
         Returns:
             当該チャンネルを監視できていれば True。
@@ -268,19 +278,25 @@ class VoiceGuard(commands.Cog):
             return False
 
         async with self._lock_for(channel.guild.id):
-            return await self._ensure_listening_locked(channel)
+            return await self._ensure_listening_locked(
+                channel, prefer_best=prefer_best
+            )
 
     async def _ensure_listening_locked(
-        self, channel: discord.VocalGuildChannel
+        self,
+        channel: discord.VocalGuildChannel,
+        *,
+        prefer_best: bool = True,
     ) -> bool:
         """ロック保持中の接続本体。"""
         guild = channel.guild
         bot_id = self.bot.user.id
 
-        # 実効リスト上で人がいる最左があればそちらを対象にする。
-        best = self._best_occupied_monitored(guild)
-        if best is not None:
-            channel = best
+        # 入室イベントなどでは最左占有へ寄せる。候補走査では渡された部屋をそのまま試す。
+        if prefer_best:
+            best = self._best_occupied_monitored(guild)
+            if best is not None:
+                channel = best
 
         if not self._is_allowed(guild, channel):
             log.debug(
