@@ -7,11 +7,11 @@ import logging
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
+
+from bot.types import DetectMode
 
 log = logging.getLogger(__name__)
-
-DetectMode = Literal["opus", "speaking"]
 
 _MIN_TIMEOUT_MINUTES = 1
 _MAX_TIMEOUT_MINUTES = 24 * 60
@@ -54,6 +54,11 @@ class UserPreferencesStore:
     def max_timeout_minutes(self) -> int:
         """許容する最長タイムアウト（分）。"""
         return _MAX_TIMEOUT_MINUTES
+
+    @property
+    def max_opus_volume(self) -> int:
+        """Opus RMS しきい値の上限。"""
+        return _MAX_OPUS_VOLUME
 
     def get(self, guild_id: int, user_id: int) -> UserPreference:
         """保存済み設定を返す。未設定なら既定の UserPreference。"""

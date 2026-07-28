@@ -1,4 +1,4 @@
-"""Logging helpers: soften expected Discord voice handshake noise."""
+"""ロギング設定: Discord ボイス握手の想定内リトライを静かにする。"""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import sys
 
 
 class SoftenVoiceHandshakeRetryFilter(logging.Filter):
-    """Downgrade expected voice handshake retries to INFO with a clearer message."""
+    """ボイス握手の再試行ログを INFO に落とし、文言を分かりやすくする。"""
 
     def filter(self, record: logging.LogRecord) -> bool:
         if record.name != "discord.voice_state":
@@ -31,7 +31,7 @@ class SoftenVoiceHandshakeRetryFilter(logging.Filter):
 
 
 def configure_logging() -> None:
-    """Configure root logging and quiet noisy voice_recv INFO lines."""
+    """ルートロガーを設定し、voice_recv の冗長な INFO を抑える。"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -43,6 +43,6 @@ def configure_logging() -> None:
         SoftenVoiceHandshakeRetryFilter()
     )
 
-    # RTCP SR / WS seq INFO is noisy during normal receive.
+    # 通常受信中の RTCP SR / WS seq INFO はノイズになる。
     logging.getLogger("discord.ext.voice_recv.reader").setLevel(logging.WARNING)
     logging.getLogger("discord.ext.voice_recv.gateway").setLevel(logging.WARNING)

@@ -50,6 +50,8 @@ cd SleepKicker
 pip install -r requirements.txt
 ```
 
+`discord-ext-voice-recv` は DAVE（E2EE）受信対応のため、upstream マージ前の [PR #58](https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/58) コミットを Git ピン留めしています（`requirements.txt` 参照）。`git` が使える環境が必要です。
+
 ### 3. 環境変数
 
 ```powershell

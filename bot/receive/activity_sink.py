@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import array
 import math
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from discord.ext import voice_recv
 from discord.opus import Decoder, OpusError
+
+from bot.types import DetectMode
 
 if TYPE_CHECKING:
     from discord import Member, User
 
     from bot.services.user_preferences import UserPreferencesStore
     from bot.services.voice_activity import VoiceActivityService
-
-DetectMode = Literal["opus", "speaking"]
 
 
 def _pcm_rms(pcm: bytes) -> float:
@@ -95,6 +95,10 @@ class ActivitySink(voice_recv.AudioSink):
         if threshold > 0 and rms < threshold:
             return
         self._activity.mark_speaking(user.id, rms=rms)
+
+    def forget_user(self, user_id: int) -> None:
+        """退出ユーザーのデコーダを破棄する。"""
+        self._decoders.pop(user_id, None)
 
     @voice_recv.AudioSink.listener()
     def on_voice_member_speaking_start(self, member: Member | User) -> None:

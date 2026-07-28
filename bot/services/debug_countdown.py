@@ -1,4 +1,4 @@
-"""Optional: print per-user silence countdown to the console at 1 Hz."""
+"""任意: 追跡中ユーザーの無音カウントダウンを 1 秒ごとにコンソールへ出す。"""
 
 from __future__ import annotations
 
@@ -14,27 +14,27 @@ log = logging.getLogger(__name__)
 
 
 class DebugCountdownService:
-    """Show silence countdown when DEBUG_LOG is enabled."""
+    """``DEBUG_LOG`` 有効時に無音カウントダウンを表示する。"""
 
     def __init__(self, bot: SleepKickerBot) -> None:
-        """Keep a bot reference."""
+        """Bot 参照を保持する。"""
         self._bot = bot
 
     def start(self) -> None:
-        """Start the 1s loop when DEBUG_LOG is enabled."""
+        """``DEBUG_LOG`` が有効なら 1 秒ループを開始する。"""
         if not self._bot.config.debug_log:
             return
         self._tick.start()
         log.info("DEBUG_LOG enabled — printing silence countdown every 1s")
 
     def stop(self) -> None:
-        """Stop the loop if running."""
+        """ループが動いていれば停止する。"""
         if self._tick.is_running():
             self._tick.cancel()
 
     @tasks.loop(seconds=1)
     async def _tick(self) -> None:
-        """Snapshot tracked users and log speaking / remaining / overdue."""
+        """追跡ユーザーのスナップショットをログに出す。"""
         default = self._bot.config.silence_threshold_seconds
         prefs = self._bot.user_preferences
 
@@ -83,11 +83,11 @@ class DebugCountdownService:
 
     @_tick.before_loop
     async def _before_tick(self) -> None:
-        """Wait until the bot is ready."""
+        """Bot の ready まで待つ。"""
         await self._bot.wait_until_ready()
 
     def _user_label(self, guild_id: int, user_id: int) -> str:
-        """Display name for logs (Member / User when possible, else ID)."""
+        """ログ用の表示名（Member / User、なければ ID）。"""
         guild = self._bot.get_guild(guild_id)
         if guild is not None:
             member = guild.get_member(user_id)

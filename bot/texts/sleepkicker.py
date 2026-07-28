@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from bot.texts.i18n import LocaleLike, ls, t
-
-DetectMode = Literal["opus", "speaking"]
+from bot.types import DetectMode
 
 # --- キー（カタログと対応。コマンド登録は ls(キー) を使う） ---
 
@@ -31,6 +28,8 @@ RESET_DESCRIPTION = "sleepkicker.reset.description"
 
 GUILD_ONLY = "sleepkicker.msg.guild_only"
 STATUS_PREFIX = "sleepkicker.msg.status_prefix"
+INVALID_TIMEOUT = "sleepkicker.msg.invalid_timeout"
+INVALID_VOLUME = "sleepkicker.msg.invalid_volume"
 
 
 def mode_label(mode: str, locale: LocaleLike = None) -> str:
@@ -95,6 +94,23 @@ def format_preference(
 
 def guild_only_message(locale: LocaleLike = None) -> str:
     return t(GUILD_ONLY, locale)
+
+
+def invalid_timeout_message(
+    *, min_minutes: int, max_minutes: int, locale: LocaleLike = None
+) -> str:
+    return t(
+        INVALID_TIMEOUT,
+        locale,
+        min_minutes=min_minutes,
+        max_minutes=max_minutes,
+    )
+
+
+def invalid_volume_message(
+    *, max_rms: int, locale: LocaleLike = None
+) -> str:
+    return t(INVALID_VOLUME, locale, max_rms=max_rms)
 
 
 def status_message(status: str, locale: LocaleLike = None) -> str:
@@ -169,11 +185,15 @@ __all__ = [
     "RESET_DESCRIPTION",
     "GUILD_ONLY",
     "STATUS_PREFIX",
+    "INVALID_TIMEOUT",
+    "INVALID_VOLUME",
     "ls",
     "t",
     "mode_label",
     "format_preference",
     "guild_only_message",
+    "invalid_timeout_message",
+    "invalid_volume_message",
     "status_message",
     "enable_off_message",
     "enable_on_message",

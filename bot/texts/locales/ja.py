@@ -30,6 +30,12 @@ STRINGS: dict[str, str] = {
     "sleepkicker.status.line": "{exit} / {mode} / {opus}",
     # --- 応答 ---
     "sleepkicker.msg.guild_only": "サーバー内でのみ使えます。",
+    "sleepkicker.msg.invalid_timeout": (
+        "無音分数は {min_minutes}〜{max_minutes} の範囲で指定してください。"
+    ),
+    "sleepkicker.msg.invalid_volume": (
+        "音量閾値は 0〜{max_rms} の範囲で指定してください。"
+    ),
     "sleepkicker.msg.status_prefix": "あなたの設定: ",
     "sleepkicker.msg.enable_off": "設定しました: **無効**",
     "sleepkicker.msg.enable_on": "設定しました: **有効**。\n現在: {status}",

@@ -40,6 +40,12 @@ STRINGS: dict[str, str] = {
     "sleepkicker.status.line": "{exit} / {mode} / {opus}",
     # --- responses ---
     "sleepkicker.msg.guild_only": "This command can only be used in a server.",
+    "sleepkicker.msg.invalid_timeout": (
+        "Silence minutes must be between {min_minutes} and {max_minutes}."
+    ),
+    "sleepkicker.msg.invalid_volume": (
+        "Volume threshold must be between 0 and {max_rms}."
+    ),
     "sleepkicker.msg.status_prefix": "Your settings: ",
     "sleepkicker.msg.enable_off": "Saved: **off**",
     "sleepkicker.msg.enable_on": "Saved: **on**.\nCurrent: {status}",

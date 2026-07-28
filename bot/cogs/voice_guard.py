@@ -94,6 +94,7 @@ class VoiceGuard(commands.Cog):
         # 退出: 追跡解除し、空なら Bot も退出を検討。
         if before.channel is not None and before.channel != after.channel:
             self.bot.voice_activity.untrack(member.id)
+            self._forget_sink_user(before.channel.guild, member.id)
             await self._maybe_leave(before.channel)
 
         # 入室／移動: 監視可能なら接続する。
@@ -183,18 +184,45 @@ class VoiceGuard(commands.Cog):
                 channels.append(channel)
         return channels
 
+    def _candidate_channels(
+        self, guild: discord.Guild
+    ) -> list[discord.VocalGuildChannel]:
+        """参加候補の占有 VC（フィルタありは実効リスト順、なしは ID 昇順）。"""
+        bot_id = self.bot.user.id
+        if self._has_monitor_filter(guild):
+            return [
+                channel
+                for channel in self._monitor_channels(guild)
+                if _human_user_ids(channel, bot_id)
+            ]
+        return sorted(self._occupied_voice_channels(guild), key=lambda c: c.id)
+
+    async def _join_first_candidate(
+        self, guild: discord.Guild, *, locked: bool
+    ) -> bool:
+        """占有している監視対象へ順に接続を試み、成功したら True。"""
+        for channel in self._candidate_channels(guild):
+            ok = (
+                await self._ensure_listening_locked(channel)
+                if locked
+                else await self._ensure_listening(channel)
+            )
+            if ok:
+                return True
+        return False
+
     async def _scan_guild(self, guild: discord.Guild) -> None:
         """ギルド起動時: 監視対象の占有 VC へ参加する。"""
-        if self._has_monitor_filter(guild):
-            for channel in self._monitor_channels(guild):
-                if _human_user_ids(channel, self.bot.user.id):
-                    if await self._ensure_listening(channel):
-                        return
-            return
+        await self._join_first_candidate(guild, locked=False)
 
-        for channel in self._occupied_voice_channels(guild):
-            if await self._ensure_listening(channel):
-                return
+    def _forget_sink_user(self, guild: discord.Guild, user_id: int) -> None:
+        """参加中 VC の ActivitySink からユーザー別デコーダを破棄する。"""
+        vc = guild.voice_client
+        if not isinstance(vc, voice_recv.VoiceRecvClient):
+            return
+        sink = vc.sink
+        if isinstance(sink, ActivitySink):
+            sink.forget_user(user_id)
 
     def _start_receive(self, vc: voice_recv.VoiceRecvClient) -> None:
         """ActivitySink で listen を開始する（未 listen 時）。"""
@@ -401,25 +429,7 @@ class VoiceGuard(commands.Cog):
             log.exception("Failed to disconnect from voice channel: %s", channel.id)
             return
 
-        await self._join_any_occupied_locked(guild)
-
-    async def _join_any_occupied(self, guild: discord.Guild) -> None:
-        """空の VC 退出後、別の占有チャンネルがあれば参加する。"""
-        async with self._lock_for(guild.id):
-            await self._join_any_occupied_locked(guild)
-
-    async def _join_any_occupied_locked(self, guild: discord.Guild) -> None:
-        """ロック保持中の再参加。"""
-        if self._has_monitor_filter(guild):
-            for channel in self._monitor_channels(guild):
-                if _human_user_ids(channel, self.bot.user.id):
-                    await self._ensure_listening_locked(channel)
-                    return
-            return
-
-        for channel in self._occupied_voice_channels(guild):
-            await self._ensure_listening_locked(channel)
-            return
+        await self._join_first_candidate(guild, locked=True)
 
 
 async def setup(bot: SleepKickerBot) -> None:

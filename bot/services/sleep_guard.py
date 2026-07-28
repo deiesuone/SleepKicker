@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import tasks
 
+from bot.config import DEFAULT_CHECK_INTERVAL_SECONDS
+
 if TYPE_CHECKING:
     from bot.client import SleepKickerBot
 
@@ -33,7 +35,7 @@ class SleepGuardService:
         if self._check.is_running():
             self._check.cancel()
 
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=DEFAULT_CHECK_INTERVAL_SECONDS)
     async def _check(self) -> None:
         """しきい値超過ユーザーを切断候補として処理する。"""
         default = self._bot.config.silence_threshold_seconds

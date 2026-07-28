@@ -15,7 +15,7 @@ from bot.texts.i18n import LocaleLike
 
 if TYPE_CHECKING:
     from bot.client import SleepKickerBot
-    from bot.config import DetectMode
+    from bot.types import DetectMode
 
 log = logging.getLogger(__name__)
 
@@ -116,8 +116,16 @@ class SleepkickerCommands(commands.Cog):
             self.bot.user_preferences.set_timeout_minutes(
                 interaction.guild.id, interaction.user.id, minutes=int(minutes)
             )
-        except ValueError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+        except ValueError:
+            prefs = self.bot.user_preferences
+            await interaction.response.send_message(
+                T.invalid_timeout_message(
+                    min_minutes=prefs.min_timeout_minutes,
+                    max_minutes=prefs.max_timeout_minutes,
+                    locale=loc,
+                ),
+                ephemeral=True,
+            )
             return
         self._after_preference_change(interaction.user.id)
         await interaction.response.send_message(
@@ -175,8 +183,14 @@ class SleepkickerCommands(commands.Cog):
             self.bot.user_preferences.set_opus_volume_threshold(
                 interaction.guild.id, interaction.user.id, rms=float(rms)
             )
-        except ValueError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+        except ValueError:
+            await interaction.response.send_message(
+                T.invalid_volume_message(
+                    max_rms=self.bot.user_preferences.max_opus_volume,
+                    locale=loc,
+                ),
+                ephemeral=True,
+            )
             return
 
         self._after_preference_change(interaction.user.id)
@@ -232,7 +246,6 @@ class SleepkickerCommands(commands.Cog):
         """ギルド同期のみ行う。過去のグローバル登録は空にして二重表示を防ぐ。"""
         if self._synced:
             return
-        self._synced = True
 
         app_id = self.bot.application_id
         if app_id is not None:
@@ -241,6 +254,7 @@ class SleepkickerCommands(commands.Cog):
 
         for guild in self.bot.guilds:
             await self._sync_guild(guild)
+        self._synced = True
         log.info(
             "Synced slash commands to guilds (%s servers)",
             len(self.bot.guilds),

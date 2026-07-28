@@ -5,16 +5,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from dotenv import load_dotenv
+
+from bot.types import DetectMode
 
 _ROOT = Path(__file__).resolve().parent.parent
 
 _TRUE_VALUES = frozenset({"true", "1", "yes"})
 _FALSE_VALUES = frozenset({"false", "0", "no"})
-
-DetectMode = Literal["opus", "speaking"]
 
 # .env 未設定時および .env.example と揃える既定値
 DEFAULT_SILENCE_THRESHOLD_SECONDS = 3600.0
@@ -62,7 +61,9 @@ def _parse_bool(name: str, raw: str | None, *, default: bool) -> bool:
     )
 
 
-def _parse_detect_mode(raw: str | None, *, default: DetectMode = "opus") -> DetectMode:
+def _parse_detect_mode(
+    raw: str | None, *, default: DetectMode = DEFAULT_DETECT_MODE
+) -> DetectMode:
     """USE_MODE を opus / speaking として解釈する。"""
     if raw is None or raw.strip() == "":
         return default
@@ -72,6 +73,19 @@ def _parse_detect_mode(raw: str | None, *, default: DetectMode = "opus") -> Dete
     raise RuntimeError(
         f"USE_MODE must be opus or speaking (got {raw!r})."
     )
+
+
+def _parse_positive_float(name: str, raw: str | None, *, default: float) -> float:
+    """正の浮動小数（0 より大きい）を解釈する。"""
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        value = float(raw.strip())
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a number (got {raw!r}).") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} must be > 0 (got {value!r}).")
+    return value
 
 
 def _parse_snowflake_list(name: str, raw: str | None) -> tuple[int, ...]:
@@ -111,17 +125,15 @@ def load_config() -> Config:
 
     return Config(
         discord_token=token,
-        silence_threshold_seconds=float(
-            os.getenv(
-                "SILENCE_THRESHOLD_SECONDS",
-                str(DEFAULT_SILENCE_THRESHOLD_SECONDS),
-            )
+        silence_threshold_seconds=_parse_positive_float(
+            "SILENCE_THRESHOLD_SECONDS",
+            os.getenv("SILENCE_THRESHOLD_SECONDS"),
+            default=DEFAULT_SILENCE_THRESHOLD_SECONDS,
         ),
-        check_interval_seconds=float(
-            os.getenv(
-                "CHECK_INTERVAL_SECONDS",
-                str(DEFAULT_CHECK_INTERVAL_SECONDS),
-            )
+        check_interval_seconds=_parse_positive_float(
+            "CHECK_INTERVAL_SECONDS",
+            os.getenv("CHECK_INTERVAL_SECONDS"),
+            default=DEFAULT_CHECK_INTERVAL_SECONDS,
         ),
         detect_mode=_parse_detect_mode(
             os.getenv("USE_MODE"), default=DEFAULT_DETECT_MODE

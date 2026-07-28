@@ -237,7 +237,9 @@ class VoiceActivityService:
         """指定ギルドに紐づく追跡をすべて解除する。"""
         with self._lock:
             to_remove = [
-                uid for uid, (gid, _) in self._last_spoke.items() if gid == guild_id
+                uid
+                for uid, (gid, _cid, _spoke) in self._last_spoke.items()
+                if gid == guild_id
             ]
             for uid in to_remove:
                 del self._last_spoke[uid]
