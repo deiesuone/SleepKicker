@@ -33,7 +33,7 @@ Discord のボイスチャンネルで、一定時間無音のメンバーを **
 | 発言 | VC 滞在用（受信専用でも付与推奨） |
 | メンバーを移動 | 無音ユーザーを VC から退出 |
 
-「メンバーをキック」は不要です。監視したい VC で Bot ロールが拒否されていないことも確認してください。
+監視したい VC で Bot ロールが拒否されていないことも確認してください。
 
 ## セットアップ
 
@@ -49,8 +49,6 @@ cd SleepKicker
 ```bash
 pip install -r requirements.txt
 ```
-
-`discord-ext-voice-recv` は DAVE（E2EE）受信対応のため、upstream マージ前の [PR #58](https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/58) コミットを Git ピン留めしています（`requirements.txt` 参照）。`git` が使える環境が必要です。
 
 ### 3. 環境変数
 
