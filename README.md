@@ -40,7 +40,7 @@ Discord のボイスチャンネルで、一定時間無音のメンバーを **
 ### 1. 取得
 
 ```bash
-git clone https://github.com/<YOUR_USER>/SleepKicker.git
+git clone https://github.com/deiesuone/SleepKicker.git
 cd SleepKicker
 ```
 
