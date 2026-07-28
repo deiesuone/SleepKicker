@@ -35,7 +35,7 @@ class Config:
         detect_mode: 発話検知のサーバー既定（opus / speaking）。
         opus_volume_threshold: Opus 判定の PCM RMS しきい値（0 なら音量ゲートなし）。
         debug_log: 1秒ごとのカウントダウンログを出すか。
-        priority_voice_channel_ids: 優先 VC ID（左ほど優先度が高い）。
+        priority_voice_channel_ids: 監視対象 VC ID（左ほど優先。空または無効のみなら全 VC）。
     """
 
     discord_token: str
@@ -44,7 +44,7 @@ class Config:
     detect_mode: DetectMode
     opus_volume_threshold: float
     debug_log: bool
-    # 左から右へ: 先頭ほど優先度が高い。
+    # 左から右へ: 先頭ほど優先度が高い。サーバーに存在する ID だけが実効リスト。
     priority_voice_channel_ids: tuple[int, ...]
 
 

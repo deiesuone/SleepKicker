@@ -8,7 +8,12 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.idea/
+.vscode/
 dist/
 build/
+*.log
+.DS_Store
+Thumbs.db
 data/user_preferences.json
 data/*.tmp
